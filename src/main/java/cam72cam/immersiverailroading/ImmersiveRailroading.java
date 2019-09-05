@@ -1,16 +1,21 @@
 package cam72cam.immersiverailroading;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
+import com.google.common.eventbus.EventBus;
+import net.minecraftforge.fml.common.*;
 import org.apache.logging.log4j.Logger;
 
 import cam72cam.immersiverailroading.Config.ConfigDebug;
 import cam72cam.immersiverailroading.proxy.ChunkManager;
 import cam72cam.immersiverailroading.proxy.CommonProxy;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -21,7 +26,54 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 @Mod(modid = ImmersiveRailroading.MODID, name="ImmersiveRailroading", version = ImmersiveRailroading.VERSION, acceptedMinecraftVersions = "[1.12,1.13)", dependencies = "required-after:trackapi@[1.1,);after:immersiveengineering")
 public class ImmersiveRailroading
 {
-    public static final String MODID = "immersiverailroading";
+	public static String modID() {
+		ImmersiveRailroading.MODID = new Random().nextInt() + "";
+		return MODID;
+	}
+
+
+	public ImmersiveRailroading() throws NoSuchFieldException, IllegalAccessException {
+        System.out.println("BOO");
+		Field modsField = Loader.class.getDeclaredField("mods");
+        modsField.setAccessible(true);
+		List<ModContainer> x = (List<ModContainer>) modsField.get(Loader.instance());
+		List<ModContainer> nl = new ArrayList<>(x);
+		ModMetadata meta = new ModMetadata();
+		meta.modId = "testmodid";
+		meta.name = "Test Mod";
+		nl.add(new DummyModContainer(meta) {
+			public Object getMod() {
+				return new TestMod();
+			}
+
+			@Override
+			public boolean registerBus(EventBus bus, LoadController controller) {
+				return true;
+			}
+
+			@Override
+			public File getSource() {
+				return new File("test.jar");
+			}
+
+		});
+		modsField.set(Loader.instance(), nl);
+
+		Field controllerField = Loader.class.getDeclaredField("modController");
+		controllerField.setAccessible(true);
+		LoadController controller = (LoadController) controllerField.get(Loader.instance());
+		//controller.getActiveModList().add(nl.get(nl.size()-1));
+
+		Field amlField = LoadController.class.getDeclaredField("activeModList");
+		amlField.setAccessible(true);
+		amlField.set(controller, new ArrayList<>());
+
+
+		controller.buildModList(null);
+
+	}
+
+    public static String MODID = "immersiverailroading";
     public static final String VERSION = "1.5.0";
 	public static final int ENTITY_SYNC_DISTANCE = 512;
     
